@@ -5,7 +5,7 @@
 // NOTE: Example only how you can override draw and use SceneObject2D
 // full example see project : ElfFlux
 //-----------------------------------------------------------------------------
-#include "SceneObject2D.h"
+#include "2D/SceneObject2D.h"
 
 #include "common/Types.h"
 

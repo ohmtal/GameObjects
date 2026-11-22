@@ -23,17 +23,17 @@ endif()
 project(ogoDemo C CXX)
 
 
-set (OGO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src")
+set (OGO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 set (LINK_LIBS)
 
 set(PROJECT_SRC
     src/main.cpp
 
-    ${OGO_DIR}/2D/SceneObject2D.cpp
-    ${OGO_DIR}/2D/SceneObject2D.h
-    ${OGO_DIR}/2D/SceneContainer2D.cpp
-    ${OGO_DIR}/2D/SceneContainer2D.h
-    ${OGO_DIR}/2D/SpriteObject.cpp
+    ${OGO_DIR}/src/2D/SceneObject2D.cpp
+    ${OGO_DIR}/src/2D/SceneObject2D.h
+    ${OGO_DIR}/src/2D/SceneContainer2D.cpp
+    ${OGO_DIR}/src/2D/SceneContainer2D.h
+    ${OGO_DIR}/examples/2D/SpriteObject.cpp
 )
 
 
@@ -53,7 +53,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-     ${OGO_DIR}
+     "${OGO_DIR}/src"
+     "${OGO_DIR}/examples"
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
