@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //-----------------------------------------------------------------------------
 // OGO 2D Object
+// - NOTE: Object must mdraw must be
 // - position Z is used for Layer
-// - FIXME childs of set are not rendered as in SceneObject(3D)
 //-----------------------------------------------------------------------------
 #pragma once
 
@@ -74,7 +74,7 @@ public:
     virtual void updateWorldBox();
     // Matrix getWorldTransform() const;
 
-    virtual void draw(const F32& dt) {}
+    virtual void draw(const F32 dt = 0.f) {} // TODO or override ?!
 
     // used for select or clicked, findObjects
     virtual bool castRayLayers(Point2F pos, F32 minLayer = 0.f, F32 maxLayer = 1.f);

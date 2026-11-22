@@ -13,7 +13,10 @@ and do not need to recreate/copy the logic behind again.
     - [X] Data Structs - borrowed from OhmFlux and BaseElf
         
     
-- 2D - Compile passed : only no function tests so far
-    - [X] SceneObject2D
+- 2D - Compile passed : only no function tests so far 
+    - render/draw must overritten somehow 
+    - [X] SceneObject2D  
     - [X] SceneContainer2D
     - [X] SpriteObject
+
+- i need a test demo project for this, lets think which one i choose ;)

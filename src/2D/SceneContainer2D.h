@@ -70,7 +70,7 @@ public:
 
     const std::vector<SceneObject2D*> getObjects() { return  mObjects; }
 
-    virtual void drawObjects() {}
+    virtual void drawObjects();
 
     bool mDoSortObects = true;
     void sortObjects(); // resort objects for layer drawing

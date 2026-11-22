@@ -2,9 +2,8 @@
 // Copyright (c) 2026 Thomas Hühn (XXTH)
 // SPDX-License-Identifier: MIT
 //-----------------------------------------------------------------------------
-// FIXME forwardVector vs Velocty << use setter speed+ForwardVector => Velocty
-// FIXME draw should not call linear movement
-// TODO collisions - remove this stupid doBounce
+// NOTE: Example only how you can override draw and use SceneObject2D
+// full example see project : ElfFlux
 //-----------------------------------------------------------------------------
 #include "SceneObject2D.h"
 
@@ -33,7 +32,7 @@ public:
     // Velocty
 
 
-    // virtual void draw(const F32& dt) override;
+    //TODO :EXAMPLE: virtual void draw(const F32& dt) override;
     static void initPersistFields();
 
     // void doBounce(F32 x , F32 y, F32 width, F32 height);

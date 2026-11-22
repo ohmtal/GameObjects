@@ -19,28 +19,6 @@ namespace OGO {
 // -----------------------------------------------------------------------------
     SceneContainer2D gClientSceneContainer2D;
 // -----------------------------------------------------------------------------
-// S32 QSORT_CALLBACK SceneContainer2D::compare_CollisionOverlap( const void* a, const void* b ) {
-//     const CollisionInfo2D* infoA =  *(const CollisionInfo2D**)a;
-//     const CollisionInfo2D* infoB =  *(const CollisionInfo2D**)b;
-//
-//     if (infoA->mOverlap == infoB->mOverlap) return 0;
-//     if (infoA->mOverlap > infoB->mOverlap) return -1;
-//     return 1;
-// }
-//
-// S32 QSORT_CALLBACK SceneContainer2D::compare_ObjectLayer( const void* a, const void* b )
-// {
-//     const SceneObject2D * cp_a = *(const SceneObject2D**)a;
-//     const SceneObject2D * cp_b = *(const SceneObject2D**)b;
-//
-//     if (cp_a->mPosition.z == cp_b->mPosition.z) return 0;
-//     if (cp_a->mPosition.z > cp_b->mPosition.z)
-//         return -1;
-//     else
-//         return 1;
-//
-// }
-// // called on SceneObject2D::setPosition and SceneContainer2D::registerObject
 void SceneContainer2D::sortObjects()
 {
     if (mLocked) return;
@@ -51,7 +29,6 @@ void SceneContainer2D::sortObjects()
                      }
     );
 
-    // dQsort( mObjects.address(), mObjects.size(), sizeof(SceneObject2D *), SceneContainer2D::compare_ObjectLayer );
 }
 // -----------------------------------------------------------------------------
 void SceneContainer2D::registerObject(SceneObject2D* obj) {
@@ -211,12 +188,11 @@ bool SceneContainer2D::fetchBoxObjects(BoundingBox searchBox, std::vector<SceneO
     return true;
 }
 // -----------------------------------------------------------------------------
-// // void SceneContainer2D::drawObjects() {
-// //     F32 dt = GetFrameTime();
-// //     if (mLocked) return;
-// //     for (U32 i = 0; i < mObjects.size(); i++) {
-// //         if (mObjects[i]->mVisible) mObjects[i]->draw(dt);
-// //     }
-// // }
+void SceneContainer2D::drawObjects() {
+    if (mLocked) return;
+    for (U32 i = 0; i < mObjects.size(); i++) {
+        if (mObjects[i]->mVisible) mObjects[i]->draw();
+    }
+}
 // -----------------------------------------------------------------------------
 } //namespace
