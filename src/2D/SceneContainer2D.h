@@ -27,30 +27,28 @@ $boxObjects.delete();
 //-----------------------------------------------------------------------------
 #pragma once
 
+#include "common/Types.h"
+#include "common/Structs.h"
+#include "common/Math.h"
+#include <vector>
+
 #ifndef RESERVED_SCENE_OBJECTS
 #define RESERVED_SCENE_OBJECTS 250
 #endif
 
-#include "console/engineAPI.h"
-#include "console/simSet.h"
-#include "core/util/tVector.h"
-
-#include "ConsoleTypes.h"
-
-namespace ElfObjects {
+namespace OGO {
 
 class SceneObject2D;
 
 struct CollisionInfo2D {
     SceneObject2D* mOther = nullptr; // we did collide with
-    Vector2 mNormal = {0.0f, 0.0f};  // the direction where the collision come from
+    Point2F mNormal = {0.0f, 0.0f};  // the direction where the collision come from
     F32 mOverlap = 0.0f;             // how much we overlap
-    // Vector2 mCollisionAxis = {0.0f,0.0f};// optional helper {1,0}  X-axis, {0,1} Y-axis
 };
 
 class SceneContainer2D {
 private:
-    Vector<SceneObject2D*> mObjects;
+    std::vector<SceneObject2D*> mObjects;
     bool mLocked = false;
 
 public:
@@ -60,19 +58,19 @@ public:
     void registerObject(SceneObject2D* obj);
     void unregisterObject(SceneObject2D* obj);
 
-    SceneObject2D* castRay(Vector2 pos,   F32 minLayer = 0.f, F32 maxLayer = 1.f);
+    SceneObject2D* castRay(Point2F pos,   F32 minLayer = 0.f, F32 maxLayer = 1.f);
 
 
-    void findObjectsInBox(BoundingBox searchBox, Vector<SceneObject2D*>& outResults, bool returnOnlyFirst = false);
-    bool CheckCollide(SceneObject2D* object, Vector<CollisionInfo2D>& outResults);
+    void findObjectsInBox(BoundingBox searchBox, std::vector<SceneObject2D*>& outResults, bool returnOnlyFirst = false);
+    bool CheckCollide(SceneObject2D* object, std::vector<CollisionInfo2D>& outResults);
 
     bool boxEmpty(BoundingBox searchBox);
-    SimSet* getBoxObjects(BoundingBox searchBox);
+    bool fetchBoxObjects(BoundingBox searchBox, std::vector<SceneObject2D*>& result);
 
 
-    const Vector<SceneObject2D*> getObjects() { return  mObjects; }
+    const std::vector<SceneObject2D*> getObjects() { return  mObjects; }
 
-    void drawObjects(); //for future use to implement shadows and reflection
+    virtual void drawObjects() {}
 
     bool mDoSortObects = true;
     void sortObjects(); // resort objects for layer drawing
@@ -81,10 +79,7 @@ public:
         mObjects.reserve(count);
     }
 
-    void deleteAllObjects() ;
 
-    static S32 QSORT_CALLBACK compare_ObjectLayer( const void* a, const void* b );
-    static S32 QSORT_CALLBACK compare_CollisionOverlap( const void* a, const void* b );
 };
 
 // global Container

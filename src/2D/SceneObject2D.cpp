@@ -5,15 +5,10 @@
 #include "SceneObject2D.h"
 #include "SceneContainer2D.h"
 
-#include "raylib.h"
-#include "raymath.h"
-#include "math/mMathFn.h"
-
-
+#include <algorithm>
 //-----------------------------------------------------------------------------
-namespace ElfObjects {
+namespace OGO {
 
-IMPLEMENT_CONOBJECT(SceneObject2D);
 
 #define MIN_MASS 0.0001f
 //-----------------------------------------------------------------------------
@@ -21,99 +16,19 @@ SceneObject2D::SceneObject2D() {
 }
 
 //-----------------------------------------------------------------------------
-bool SceneObject2D::_setFieldPosition( void *object, const char *index, const char *data )
-{
-    SceneObject2D* so = static_cast<SceneObject2D*>( object );
-    if ( so )
-    {
-        Vector3 newPos( so->mPosition );
-        Con::setData( TypeVector3, &newPos, 0, 1, &data );
-        so->setPosition( newPos );
-    }
-    return false;
-}
-//-----------------------------------------------------------------------------
-bool SceneObject2D::_setFieldSize( void *object, const char *index, const char *data )
-{
-    SceneObject2D* so = static_cast<SceneObject2D*>( object );
-    if ( so )
-    {
-        Vector2 newSize( so->mSize );
-        Con::setData( TypeVector2, &newSize, 0, 1, &data );
-        so->setSize( newSize );
-    }
-    return false;
-}
-
-//-----------------------------------------------------------------------------
-void SceneObject2D::initPersistFields() {
-
-    addProtectedField("Position", TypeVector3, Offset(mPosition, SceneObject2D),
-             &_setFieldPosition, &defaultProtectedGetFn,
-             "2D position + layer. ");
-    addProtectedField("Size", TypeVector2, Offset(mSize, SceneObject2D),
-             &_setFieldSize, &defaultProtectedGetFn,
-             "Render Size.");
-
-    addField("ShapeType", TypeS32, Offset(mShapeType, SceneObject2D), "Type of the shape for collision. Default ShapeType_Rectangle");
-    addField("collisionMask", TypeS32, Offset(mCollisionMask,SceneObject2D), "Collsion filter mask");
-    addField("typeMask", TypeS32, Offset(mTypeMask,SceneObject2D), "Collision Type mask of this object");
-    addField("collisionType", TypeS32, Offset(mCollisionType,SceneObject2D), "See also enum CollisionType_Kinematic, CollisionType_Bounce and other constants with  CollisionType_");
-
-    addField("color", TypeColor, Offset(mColor, SceneObject2D), "The color or tint of the object");
-    addField("visible", TypeBool, Offset(mVisible, SceneObject2D), "Is the object drawn");
-
-    // position Fields require refresh after settled
-    addField("x", TypeF32, Offset(mPosition.x,SceneObject2D), "");
-    addField("y", TypeF32, Offset(mPosition.y,SceneObject2D));
-    // use setZ or .position  addField("z", TypeF32, Offset(mPosition.z,SceneObject2D));
-
-
-    addField("velocity", TypeVector2, Offset(mVelo,SceneObject2D));
-    addField("veloX", TypeF32, Offset(mVelo.x,SceneObject2D));
-    addField("veloY", TypeF32, Offset(mVelo.y,SceneObject2D));
-
-
-
-    addField("mass", TypeF32, Offset(mMass,SceneObject2D), "Mass of the object");
-    addField("restitution", TypeF32, Offset(mRestitution,SceneObject2D), "bouncyness: 0.0 = like a stone ; 1.0 = like a flummy ball");
-    addField("friction", TypeF32, Offset(mFriction,SceneObject2D), "0.0 = like one ice; 1.0 = with handbreak on");
-    addField("damping", TypeF32, Offset(mCollisionDamping,SceneObject2D), "restitution < 1= lower bounce > 1 = heigher bounce");
-
-    Parent::initPersistFields();
-}
-
-//-----------------------------------------------------------------------------
-
-bool SceneObject2D::onAdd() {
-    if (!Parent::onAdd()) return false;
-
-    gClientSceneContainer2D.registerObject(this);
-
-    updateWorldBox();
-    return true;
-}
-//-----------------------------------------------------------------------------
-
-void SceneObject2D::onRemove() {
-
-    gClientSceneContainer2D.unregisterObject(this);
-    Parent::onRemove();
-}
-//-----------------------------------------------------------------------------
 void SceneObject2D::setLayer(const F32 z) {
     if (z == this->mPosition.z) return;
 
     // layer should be in 0.f .. 1.f
-    F32 finalZ = ElfMath::mClampF(z, 0.f, 1.f);
+    F32 finalZ = std::clamp(z, 0.f, 1.f);
 
     // MAX_2D_LAYERS
-    finalZ = ElfMath::mFloor( finalZ * (F32)MAX_2D_LAYERS ) / MAX_2D_LAYERS;
+    finalZ = std::floor( finalZ * (F32)MAX_2D_LAYERS ) / MAX_2D_LAYERS;
 
     mPosition.z = finalZ;
 }
 //-----------------------------------------------------------------------------
-void SceneObject2D::setPosition(const Vector3& pos) {
+void SceneObject2D::setPosition(const Point3F& pos) {
     if (pos == this->mPosition) return;
     this->mPosition.x = pos.x;
     this->mPosition.y = pos.y;
@@ -121,7 +36,7 @@ void SceneObject2D::setPosition(const Vector3& pos) {
     this->onPositionChanged();
 }
 //-----------------------------------------------------------------------------
-void SceneObject2D::setSize(const Vector2& size) {
+void SceneObject2D::setSize(const Point2F& size) {
     this->mSize = size;
     this->updateWorldBox();
 }
@@ -139,7 +54,7 @@ void SceneObject2D::solveCollision(const CollisionInfo2D& info) {
     if (info.mOther->mCollisionType != CollisionType::Trigger && info.mOther->mCollisionType != CollisionType::None) {
         // clamp overlap
         F32 slop = 0.01f;
-        F32 penetration = ElfMath::getMax(0.0f, info.mOverlap - slop);
+        F32 penetration = std::max(0.0f, info.mOverlap - slop);
         F32 correctionScale = 0.8f;
 
         this->mPosition.x += info.mNormal.x * penetration * correctionScale;
@@ -178,7 +93,7 @@ void SceneObject2D::solveCollision(const CollisionInfo2D& info) {
             this->mVelo.x += info.mNormal.x * (impulseScalar / massA);
             this->mVelo.y += info.mNormal.y * (impulseScalar / massA);
 
-            Vector2 tangent = { -info.mNormal.y, info.mNormal.x };
+            Point2F tangent = { -info.mNormal.y, info.mNormal.x };
             F32 tangentVel = relVelX * tangent.x + relVelY * tangent.y;
             F32 combinedFriction = this->mFriction * info.mOther->mFriction;
 
@@ -216,7 +131,7 @@ void SceneObject2D::solveCollision(const CollisionInfo2D& info) {
     //         this->mVelo.y += info.mNormal.y * impulseStrength;
     //
     //         // Friction
-    //         Vector2 tangent = { -info.mNormal.y, info.mNormal.x };
+    //         Point2F tangent = { -info.mNormal.y, info.mNormal.x };
     //         F32 tangentVel = this->mVelo.x * tangent.x + this->mVelo.y * tangent.y;
     //
     //         // combine
@@ -238,27 +153,25 @@ void SceneObject2D::onPositionChanged() {
     if ( mCollisionType != CollisionType::Static && mCollisionType != CollisionType::None
         && mShapeType != ShapeType::None
     ) {
-        Vector<CollisionInfo2D> collsionInfos;
+
+        std::vector<CollisionInfo2D> collsionInfos;
         if (gClientSceneContainer2D.CheckCollide(this, collsionInfos)) {
-            // sort by biggest mOverlap
-            dQsort( collsionInfos.address(), collsionInfos.size(), sizeof(CollisionInfo2D),
-                    SceneContainer2D::compare_CollisionOverlap );
+
+            std::sort(collsionInfos.begin(), collsionInfos.end(),
+                      [](const CollisionInfo2D& a, const CollisionInfo2D& b) {
+                          return a.mOverlap > b.mOverlap;
+                      }
+            );
+
 
             // Con::warnf("--------- We did collide:");
 
             // FIXME ShapeType
 
             for (const auto& info : collsionInfos) {
-                if (!::CheckCollisionRecs(this->mWorldBox, info.mOther->mWorldBox)) {
+                if (!this->mWorldBox.intersects(info.mOther->mWorldBox)) {
                     continue;
                 }
-                // debug
-                // Con::printf("ID: %d, normal:%.4f, %.4f mCollisionAxis: %.4f, %.4f, mOverlap: %.4f",
-                //             info.mOther->getId()
-                //             , info.mNormal.x, info.mNormal.y
-                //             , info.mCollisionAxis.x, info.mCollisionAxis.y
-                //             , info.mOverlap
-                // );
 
                 this->solveCollision(info);
             }
@@ -277,8 +190,8 @@ void SceneObject2D::updateWorldBox() {
 
     mWorldBox.x = mPosition.x;
     mWorldBox.y = mPosition.y;
-    mWorldBox.width = mSize.x;
-    mWorldBox.height = mSize.y;
+    mWorldBox.w = mSize.x;
+    mWorldBox.h = mSize.y;
 
 
     mWorldBoxHalfSize.x = mSize.x / 2.f;
@@ -293,12 +206,7 @@ void SceneObject2D::updateWorldBox() {
     // allow negativ mass
     if (mMass == 0.f) mMass = MIN_MASS;
 
-
-
-
 }
-
-
 //-----------------------------------------------------------------------------
 void SceneObject2D::moveLinear(F32 dt, bool doRefresh) {
     this->mPosition.x += this->mVelo.x * dt;
@@ -307,10 +215,9 @@ void SceneObject2D::moveLinear(F32 dt, bool doRefresh) {
 
     if (doRefresh) onPositionChanged();
 }
-
 //-----------------------------------------------------------------------------
 //NOTE gravity, softening, maxSpeed: depends on common object speed
-void SceneObject2D::moveGravity(F32 dt, Vector2 gravity, bool doRefresh) {
+void SceneObject2D::moveGravity(F32 dt, Point2F gravity, bool doRefresh) {
     this->mVelo.x += (gravity.x / this->mMass) * dt;
     this->mVelo.y += (gravity.y / this->mMass) * dt;
     // this->mVelo.z += (gravity.z / this->mMass) * dt;
@@ -322,13 +229,13 @@ void SceneObject2D::moveGravity(F32 dt, Vector2 gravity, bool doRefresh) {
     if (doRefresh) onPositionChanged();
 }
 //-----------------------------------------------------------------------------
-void SceneObject2D::moveOrbital(F32 dt, Vector2 centerPoint, F32 gravity
+void SceneObject2D::moveOrbital(F32 dt, Point2F centerPoint, F32 gravity
     , F32 softening, F32 maxSpeed, bool applyMass, bool doRefresh) {
-    Vector2 direction;
+    Point2F direction;
     direction.x = centerPoint.x - this->mPosition.x;
     direction.y = centerPoint.y - this->mPosition.y;
 
-    F32 distance = ElfMath::mSqrt(direction.x * direction.x + direction.y * direction.y);
+    F32 distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
 
     if (distance > 0.0001f) {
         F32 invDistance = 1.0f / distance;
@@ -345,7 +252,7 @@ void SceneObject2D::moveOrbital(F32 dt, Vector2 centerPoint, F32 gravity
         this->mVelo.y += direction.y * gravityPull * dt;
     }
 
-    F32 currentSpeed = ElfMath::mSqrt(this->mVelo.x * this->mVelo.x + this->mVelo.y * this->mVelo.y);
+    F32 currentSpeed = std::sqrt(this->mVelo.x * this->mVelo.x + this->mVelo.y * this->mVelo.y);
     if (currentSpeed > maxSpeed && currentSpeed > 0.0f) {
         F32 invSpeed = maxSpeed / currentSpeed;
         this->mVelo.x *= invSpeed;
@@ -359,11 +266,11 @@ void SceneObject2D::moveOrbital(F32 dt, Vector2 centerPoint, F32 gravity
 }
 
 //-----------------------------------------------------------------------------
-void SceneObject2D::applyRadialImpulse(const Vector2& center, F32 strength, F32 maxDistance) {
+void SceneObject2D::applyRadialImpulse(const Point2F& center, F32 strength, F32 maxDistance) {
     F32 dirX = this->mPosition.x - center.x;
     F32 dirY = this->mPosition.y - center.y;
 
-    F32 distance = ElfMath::mSqrt(dirX * dirX + dirY * dirY);
+    F32 distance = std::sqrt(dirX * dirX + dirY * dirY);
 
     // allow negativ mass ..
     if (distance < 0.0001f || ( maxDistance != 0.f &&  distance > maxDistance) /*|| this->mMass <= 0.0001f*/) {
@@ -379,12 +286,12 @@ void SceneObject2D::applyRadialImpulse(const Vector2& center, F32 strength, F32 
     this->mVelo.y += normY * deltaV;
 }
 //-----------------------------------------------------------------------------
-void SceneObject2D::applyLinearImpulse(Vector2 direction, F32 strength) {
+void SceneObject2D::applyLinearImpulse(Point2F direction, F32 strength) {
     // if (this->mMass <= 0.0001f) {
     //     return;
     // }
 
-    F32 len = ElfMath::mSqrt(direction.x * direction.x + direction.y * direction.y);
+    F32 len = std::sqrt(direction.x * direction.x + direction.y * direction.y);
     if (len < 0.0001f) {
         return;
     }
@@ -399,82 +306,26 @@ void SceneObject2D::applyLinearImpulse(Vector2 direction, F32 strength) {
 }
 
 //-----------------------------------------------------------------------------
-// script interface:
+//
 //-----------------------------------------------------------------------------
-bool SceneObject2D::castRayLayers(Vector2 pos, F32 minLayer, F32 maxLayer) {
+bool SceneObject2D::castRayLayers(Point2F pos, F32 minLayer, F32 maxLayer) {
     if (!mVisible || mPosition.z > maxLayer || mPosition.z < minLayer) return false;
-    return ::CheckCollisionPointRec(pos, mWorldBox);
+    return mWorldBox.pointInRect(pos);
 }
 //-----------------------------------------------------------------------------
-bool SceneObject2D::rectCollideLayers(Rectangle rect, F32 minLayer, F32 maxLayer) {
+bool SceneObject2D::rectCollideLayers(RectF rect, F32 minLayer, F32 maxLayer) {
     if (!mVisible || mPosition.z > maxLayer || mPosition.z < minLayer) return false;
-    return ::CheckCollisionRecs(rect, mWorldBox);
+    return rect.intersects(mWorldBox);
 }
 //-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, setPosition,void, (F32 x, F32 y, F32 z), , "Set the position and refresh the worldbox") {
-    object->setPosition({ x,y,z });
-;
+void SceneObject2D::beginMove() {
+      mSavPostion = mPosition;
 }
-
-DefineEngineMethod(SceneObject2D, setZ,void, (F32 z), , "het the layer") {
-    object->setLayer(z );
-}
-DefineEngineMethod(SceneObject2D, getZ,F32, (), , "get the layer") {
-    return object->mPosition.z;
-}
-DefineEngineMethod(SceneObject2D, setSize,void, (F32 x, F32 y), ,
-                   "Set the size and update the worldbox") {
-    object->setSize({x,y});
-}
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, moveLinear, void, (F32 dt, bool doRefresh),(false) ,"Move Linear position/velocity"
-    "\nRequire manual refresh!") {
-    object->moveLinear(dt, doRefresh);
-}
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, moveGravity, void,
-        (F32 dt, F32 gravityX, F32 gravityY/*, F32 gravityZ*/, bool doRefresh),
-        (0.f, 9.81f/*, 0.f*/, false) ,
-        "Move with gravity acceleration default: 0, 9.81"
-        "\nRequire manual refresh!") {
-    object->moveGravity(dt, {gravityX, gravityY}, doRefresh);
-}
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, moveOrbital2D, void, (F32 dt,
-        Vector2 centerPoint, F32 gravity, F32 softening, F32 maxSpeed, bool applyMass, bool doRefresh),
-        (10.f, 150.f, 350.f, true, false) ,
-        "2D Safe Orbital Movement"
-        "\nRequire manual refresh!" ) {
-    object->moveOrbital(dt, centerPoint, gravity, softening, maxSpeed, applyMass, doRefresh);
-}
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, applyRadialImpulse, void, (F32 centerX, F32 centerY, F32 strength, F32 maxDistance),
-(0.f), "Apply a radial impulse, maxDistance == 0 means no distance check "
-        ) {
-    object->applyRadialImpulse( {centerX, centerY}, strength, maxDistance);
-}
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, applyLinearImpulse, void, (F32 dirX, F32 dirY, F32 strength),
-                   , "Apply a radial impulse"
-) {
-    object->applyLinearImpulse({dirX, dirY}, strength);
-}
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, GetWorldBox, Rectangle, (), ,
-                   "save the current position"){
-    return object->mWorldBox;
-}
-//-----------------------------------------------------------------------------
-DefineEngineMethod(SceneObject2D, beginMove, void, (), ,
-                   "save the current position"){
-    object->mSavPostion = object->mPosition;
-}
-DefineEngineMethod(SceneObject2D, endMove, void, (), ,
-                   "save the current position"){
-    // only if deltaMove > 0.0001f
-    if (Vector3Distance(object->mSavPostion, object->mPosition) > 0.0001f )  {
-        object->onPositionChanged();
+void SceneObject2D::endMove() {
+    if (mSavPostion.distance(mPosition) > 0.0001f )  {
+        onPositionChanged();
     }
 }
+
+
 }//namespace
